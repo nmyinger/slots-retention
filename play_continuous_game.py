@@ -48,31 +48,32 @@ try:
         total_bet += bet_per_spin
         total_spins += 1
 
-        outcome, scatter_count = slot.spin_reels()
-        spin_win, wins_detail = slot.evaluate_lines(outcome)
+        spin_result = slot.play_spin()
+        spin_win = spin_result["total_win"]
+        scatter_count = spin_result["scatter_count"]
+        triggered_bonus = spin_result["bonus_triggered"]
 
-        if spin_win > 0:
+        if spin_result["base_win"] > 0:
             hits += 1
 
         bonus_win = 0
-        triggered_bonus = False
-        if scatter_count >= 3:
+        if triggered_bonus:
             bonus_triggers += 1
-            triggered_bonus = True
-            bonus_spins = 10
-            fs_count = 0
+            bonus_win = spin_result["bonus_total_win"]
+            bonus_spin_results = spin_result["bonus_spin_results"]
 
             print("\n✨✨✨ BONUS TRIGGERED! ✨✨✨", flush=True)
-            print(f"➡️  Spin {total_spins}: {scatter_count} ⭐ SCATTERS! Starting 10 Free Spins\n", flush=True)
+            print(
+                f"➡️  Spin {total_spins}: {scatter_count} ⭐ SCATTERS! "
+                f"Starting {slot.BONUS_INITIAL_SPINS} Free Spins\n",
+                flush=True
+            )
             input("Press Enter to start bonus spins...")
 
-            while bonus_spins > 0:
-                bonus_spins -= 1
-                fs_count += 1
-                outcome_fs, scat_fs = slot.spin_reels()
-                base_win_fs, wins_fs = slot.evaluate_lines(outcome_fs)
-                win_fs = base_win_fs * 2
-                bonus_win += win_fs
+            for fs_count, bonus_spin in enumerate(bonus_spin_results, start=1):
+                outcome_fs = bonus_spin["outcome"]
+                wins_fs = bonus_spin["wins_detail"]
+                retriggered = bonus_spin["retriggered"]
 
                 print(f"  🎰 Bonus Spin {fs_count}", flush=True)
                 print("  ┌───────────────────────────────┐")
@@ -83,22 +84,28 @@ try:
 
                 if wins_fs:
                     for (line_num, sym, count, pay) in wins_fs:
-                        print(f"     ✅ Line {line_num}: {count} × {sym} → {pay * 2} credits (2x)", flush=True)
-                        if pay * 2 >= bet_per_spin * BIG_WIN_MULTIPLIER:
+                        line_pay = pay * slot.BONUS_MULTIPLIER
+                        print(
+                            f"     ✅ Line {line_num}: {count} × {sym} → "
+                            f"{line_pay} credits ({slot.BONUS_MULTIPLIER}x)",
+                            flush=True
+                        )
+                        if line_pay >= bet_per_spin * BIG_WIN_MULTIPLIER:
                             print("\n🌟🌟🌟 BIG BONUS WIN! 🌟🌟🌟", flush=True)
                             input("Press Enter to continue...")
                 else:
                     print("     ❌ No line wins.", flush=True)
 
-                if scat_fs >= 3:
-                    bonus_spins += 10
-                    print("     🔁 ⭐ Bonus Re-Triggered! +10 spins", flush=True)
+                if retriggered:
+                    print(
+                        f"     🔁 ⭐ Bonus Re-Triggered! +{slot.BONUS_RETRIGGER_SPINS} spins",
+                        flush=True
+                    )
                     input("Press Enter to continue...")
 
                 time.sleep(SPIN_DELAY)
 
             bonus_total_win += bonus_win
-            spin_win += bonus_win
             print(f"\n🎉 Bonus Complete! Total Bonus Win: {bonus_win} credits\n", flush=True)
             input("Press Enter to resume normal spins...\n")
 

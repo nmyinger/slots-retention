@@ -33,8 +33,11 @@ if balance < bet_per_spin:
     print("⚠️  Insufficient balance to play. Please reset or top up.")
 else:
     balance -= bet_per_spin
-    outcome, scatter_count = slot.spin_reels()
-    spin_win, wins_detail = slot.evaluate_lines(outcome)
+    spin_result = slot.play_spin()
+    outcome = spin_result["outcome"]
+    scatter_count = spin_result["scatter_count"]
+    wins_detail = spin_result["wins_detail"]
+    spin_win = spin_result["total_win"]
 
     print("\n🎞️  Reels:")
     print(SPIN_HEADER)
@@ -52,20 +55,19 @@ else:
         print("🙁 No line wins this spin.")
 
     # Bonus trigger
-    if scatter_count >= 3:
-        print(f"\n✨ {scatter_count} ⭐ SCATTERS! BONUS TRIGGERED: 10 FREE SPINS! ✨")
-        bonus_spins = 10
-        bonus_total_win = 0
-        fs_count = 0
+    if spin_result["bonus_triggered"]:
+        bonus_total_win = spin_result["bonus_total_win"]
+        bonus_spin_results = spin_result["bonus_spin_results"]
+        print(
+            f"\n✨ {scatter_count} ⭐ SCATTERS! BONUS TRIGGERED: "
+            f"{slot.BONUS_INITIAL_SPINS} FREE SPINS! ✨"
+        )
 
-        while bonus_spins > 0:
-            bonus_spins -= 1
-            fs_count += 1
+        for fs_count, bonus_spin in enumerate(bonus_spin_results, start=1):
             print(f"\n🎲 Bonus Spin {fs_count}:")
-            outcome_fs, scat_fs = slot.spin_reels()
-            base_win_fs, wins_fs = slot.evaluate_lines(outcome_fs)
-            win_fs = base_win_fs * 2
-            bonus_total_win += win_fs
+            outcome_fs = bonus_spin["outcome"]
+            wins_fs = bonus_spin["wins_detail"]
+            retriggered = bonus_spin["retriggered"]
 
             for row in range(3):
                 row_data = [(sym if sym != "-" else " ") for sym in outcome_fs[row]]
@@ -73,16 +75,18 @@ else:
 
             if wins_fs:
                 for (line_num, sym, count, pay) in wins_fs:
-                    print(f"  >> Line {line_num}: {count} × {sym} pays {pay * 2} credits (2x)")
+                    line_pay = pay * slot.BONUS_MULTIPLIER
+                    print(
+                        f"  >> Line {line_num}: {count} × {sym} pays {line_pay} "
+                        f"credits ({slot.BONUS_MULTIPLIER}x)"
+                    )
             else:
                 print("  No line wins.")
 
-            if scat_fs >= 3:
-                bonus_spins += 10
-                print("  ⭐ Bonus Re-Triggered! +10 more spins!")
+            if retriggered:
+                print(f"  ⭐ Bonus Re-Triggered! +{slot.BONUS_RETRIGGER_SPINS} more spins!")
 
         print(f"\n🎉 BONUS COMPLETE: Total Bonus Winnings = {bonus_total_win} credits")
-        spin_win += bonus_total_win
 
     elif scatter_count == 2:
         print("⚡ Two scatters appeared... one short of the bonus!")

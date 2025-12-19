@@ -2,6 +2,11 @@ import random
 
 symbols = ["J", "Q", "K", "A", "7", "BAR", "W", "⭐", "-"]
 
+BONUS_TRIGGER_SCATTERS = 3
+BONUS_INITIAL_SPINS = 10
+BONUS_RETRIGGER_SPINS = 10
+BONUS_MULTIPLIER = 2
+
 scatter_stops = [2, 2, 2, 2, 1]
 base_counts = {
     "J": 10,
@@ -41,9 +46,9 @@ paytable = {
     "Q": {3: 5, 4: 10, 5: 20},
     "K": {3: 10, 4: 25, 5: 50},
     "A": {3: 10, 4: 25, 5: 50},
-    "7": {3: 15, 4: 50, 5: 100},
-    "BAR": {3: 20, 4: 100, 5: 200},
-    "W": {3: 50, 4: 200, 5: 500}
+    "7": {3: 30, 4: 100, 5: 200},
+    "BAR": {3: 20, 4: 150, 5: 400},
+    "W": {3: 50, 4: 300, 5: 600}
 }
 
 def spin_reels():
@@ -113,3 +118,54 @@ def evaluate_lines(outcome):
             total_win += best_pay
             wins_detail.append((li, best_symbol, count, best_pay))
     return total_win, wins_detail
+
+def play_bonus_round():
+    bonus_spins_remaining = BONUS_INITIAL_SPINS
+    bonus_spin_results = []
+    bonus_total_win = 0
+
+    while bonus_spins_remaining > 0:
+        bonus_spins_remaining -= 1
+        outcome, scatter_count = spin_reels()
+        base_win, wins_detail = evaluate_lines(outcome)
+        win = base_win * BONUS_MULTIPLIER
+        bonus_total_win += win
+
+        retriggered = scatter_count >= BONUS_TRIGGER_SCATTERS
+        if retriggered:
+            bonus_spins_remaining += BONUS_RETRIGGER_SPINS
+
+        bonus_spin_results.append({
+            "outcome": outcome,
+            "scatter_count": scatter_count,
+            "base_win": base_win,
+            "wins_detail": wins_detail,
+            "win": win,
+            "retriggered": retriggered
+        })
+
+    return bonus_total_win, bonus_spin_results
+
+def play_spin():
+    outcome, scatter_count = spin_reels()
+    base_win, wins_detail = evaluate_lines(outcome)
+
+    bonus_triggered = scatter_count >= BONUS_TRIGGER_SCATTERS
+    bonus_total_win = 0
+    bonus_spin_results = []
+    total_win = base_win
+
+    if bonus_triggered:
+        bonus_total_win, bonus_spin_results = play_bonus_round()
+        total_win += bonus_total_win
+
+    return {
+        "outcome": outcome,
+        "scatter_count": scatter_count,
+        "base_win": base_win,
+        "wins_detail": wins_detail,
+        "bonus_triggered": bonus_triggered,
+        "bonus_total_win": bonus_total_win,
+        "bonus_spin_results": bonus_spin_results,
+        "total_win": total_win
+    }

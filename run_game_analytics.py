@@ -2,10 +2,10 @@ import slot_game_logic as slot
 import time
 
 # Set a number of spins to simulate
-total_spins = 10000
+total_spins = 1000000
 
 # Stats trackers
-balance = 100000
+balance = 100000000
 bet_per_spin = 10  # Fixed at 10 credits per spin (10 lines x 1 credit)
 total_bet = 0
 total_win = 0
@@ -19,29 +19,15 @@ for spin in range(1, total_spins + 1):
     balance -= bet_per_spin
     total_bet += bet_per_spin
 
-    outcome, scatter_count = slot.spin_reels()
-    spin_win, _ = slot.evaluate_lines(outcome)
+    spin_result = slot.play_spin()
+    spin_win = spin_result["total_win"]
 
-    if spin_win > 0:
+    if spin_result["base_win"] > 0:
         hits += 1
     
-    # Check for bonus
-    if scatter_count >= 3:
+    if spin_result["bonus_triggered"]:
         bonus_triggers += 1
-        bonus_spins = 10
-        bonus_total_win = 0
-
-        while bonus_spins > 0:
-            bonus_spins -= 1
-            outcome_fs, scat_fs = slot.spin_reels()
-            base_win_fs, _ = slot.evaluate_lines(outcome_fs)
-            win_fs = base_win_fs * 2  # 2x multiplier in bonus
-            bonus_total_win += win_fs
-
-            if scat_fs >= 3:
-                bonus_spins += 10  # retrigger
-        spin_win += bonus_total_win
-        bonus_wins += bonus_total_win
+        bonus_wins += spin_result["bonus_total_win"]
 
     total_win += spin_win
     balance += spin_win
